@@ -1,0 +1,16 @@
+{
+  "include": ["**/*"],
+  "exclude": ["node_modules","build.ts"],
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "es2022",
+    "moduleResolution": "bundler",
+    "lib": ["es2022","dom"],
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "incremental": false
+  }
+}
