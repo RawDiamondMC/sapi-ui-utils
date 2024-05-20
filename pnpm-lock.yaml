@@ -15,8 +15,8 @@ importers:
         specifier: '>=1.2.0-beta.1.20.10-preview.23 <1.2.0-rc'
         version: 1.2.0-beta.1.21.0-preview.23
       sapi-utils:
-        specifier: ^0.1.0
-        version: 0.1.0(@minecraft/server@1.11.0-beta.1.20.80-stable)
+        specifier: ^0.2.0
+        version: 0.2.0(@minecraft/server@1.11.0-beta.1.20.80-stable)
     devDependencies:
       '@types/node':
         specifier: ^20.12.12
@@ -25,8 +25,8 @@ importers:
         specifier: ^0.21.3
         version: 0.21.3
       tsx:
-        specifier: ^4.10.4
-        version: 4.10.4
+        specifier: ^4.10.5
+        version: 4.10.5
       typescript:
         specifier: 5.5.0-beta
         version: 5.5.0-beta
@@ -345,13 +345,13 @@ packages:
   resolve-pkg-maps@1.0.0:
     resolution: {integrity: sha512-seS2Tj26TBVOC2NIc2rOe2y2ZO7efxITtLZcGSOnHHNOQ7CkiUBfw0Iw2ck6xkIhPwLhKNLS8BO+hEpngQlqzw==}
 
-  sapi-utils@0.1.0:
-    resolution: {integrity: sha512-k+NAnqMxsgpNs3ortMECv9B5n8MDkbce5SSAk51PS01YgM1Xm4TJ8Ejvg7ZqbvzleNUkZiUG2em/j5oXNaELBw==}
+  sapi-utils@0.2.0:
+    resolution: {integrity: sha512-lqq9O21qnc0D/Ht0Okx8mV99z2HNOgHBaw5cX+jD0zZiuFkTKV4EN4RWZG+X6tBtOvtVpP3ctgul23ZLxyXVyQ==}
     peerDependencies:
       '@minecraft/server': '>=1.10.0-beta.1.20.70-preview.20 <1.10.0-rc.1.20.80-preview.20 || >=1.11.0-beta.1.20.80-preview.20 <1.11.0-rc.1.21.0-preview.20 || >=1.12.0-beta.1.21.0-preview.20 <1.12.0-rc'
 
-  tsx@4.10.4:
-    resolution: {integrity: sha512-Gtg9qnZWNqC/OtcgiXfoAUdAKx3/cgKOYvEocAsv+m21MV/eKpV/WUjRXe6/sDCaGBl2/v8S6v29BpUnGMCX5A==}
+  tsx@4.10.5:
+    resolution: {integrity: sha512-twDSbf7Gtea4I2copqovUiNTEDrT8XNFXsuHpfGbdpW/z9ZW4fTghzzhAG0WfrCuJmJiOEY1nLIjq4u3oujRWQ==}
     engines: {node: '>=18.0.0'}
     hasBin: true
 
@@ -583,11 +583,11 @@ snapshots:
 
   resolve-pkg-maps@1.0.0: {}
 
-  sapi-utils@0.1.0(@minecraft/server@1.11.0-beta.1.20.80-stable):
+  sapi-utils@0.2.0(@minecraft/server@1.11.0-beta.1.20.80-stable):
     dependencies:
       '@minecraft/server': 1.11.0-beta.1.20.80-stable
 
-  tsx@4.10.4:
+  tsx@4.10.5:
     dependencies:
       esbuild: 0.20.2
       get-tsconfig: 4.7.5
