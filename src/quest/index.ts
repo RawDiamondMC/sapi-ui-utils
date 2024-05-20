@@ -178,7 +178,9 @@ export class Quest {
     player.addTag(`sapi-u:${this.id}`);
     player.addLevels(this.award?.playerXpLevel ?? 0);
     player.addExperience(this.award?.playerXpPoint ?? 0);
-    this.award?.item?.forEach((item: ItemStack) => {
+    let itemAward: ItemStack | ItemStack[] = this.award?.item ?? [];
+    if (!Array.isArray(itemAward)) itemAward = [itemAward];
+    itemAward.forEach((item: ItemStack) => {
       player.getComponent("minecraft:inventory")?.container?.addItem(item);
     });
     this.award?.custom?.(player);
@@ -250,7 +252,7 @@ export interface QuestCondition {
   /**
    * Match only typeId and min amount.
    */
-  item?: ItemData[];
+  item?: ItemData[] | ItemData;
   /**
    * The specific level will be required to unlock the quest.
    */
@@ -271,7 +273,7 @@ export interface QuestAward {
   /**
    * Player will get these items when the quest is finished.
    */
-  item?: ItemStack[];
+  item?: ItemStack[] | ItemStack;
   /**
    * The specific level will be given to the player.
    */
@@ -293,7 +295,9 @@ export interface ItemData {
 
 function checkCondition(condition: QuestCondition, player: Player) {
   let message: RawMessage = { rawtext: [] };
-  for (const itemData of condition.item ?? []) {
+  let itemCondition: ItemData | ItemData[] = condition.item ?? [];
+  if (!Array.isArray(itemCondition)) itemCondition = [itemCondition];
+  for (const itemData of itemCondition) {
     const container: undefined | Container = player.getComponent(
       "minecraft:inventory",
     )?.container;
