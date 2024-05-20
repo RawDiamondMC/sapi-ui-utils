@@ -287,7 +287,7 @@ export interface QuestAward {
 }
 
 export interface ItemData {
-  translateString: string;
+  name: string;
   item: ItemStack;
 }
 
@@ -322,7 +322,7 @@ function checkCondition(condition: QuestCondition, player: Player) {
       message.rawtext?.push({
         rawtext: [
           {
-            translate: itemData.translateString,
+            translate: itemData.name,
           },
           {
             text: "*",
