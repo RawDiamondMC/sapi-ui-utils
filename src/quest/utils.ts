@@ -5,7 +5,7 @@ import {
   QuestCondition,
   QuestTypes,
 } from "./index.js";
-import { RawMessage } from "@minecraft/server";
+import { RawMessage, world } from "@minecraft/server";
 
 export function createQuestBookFromArray(
   questData: QuestData[],
@@ -46,4 +46,10 @@ export interface QuestBookData {
   id: string;
   title: string | RawMessage;
   body: string | RawMessage;
+}
+
+export function registerBook(item: string, book: QuestBook) {
+  world.afterEvents.itemUse.subscribe((event) => {
+    if (event.itemStack.typeId === item) book.display(event.source);
+  });
 }

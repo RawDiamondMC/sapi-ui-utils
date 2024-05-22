@@ -17,6 +17,8 @@ import {
 import * as sapi from "sapi-utils";
 export * from "./utils.js";
 
+let tagNameSpace: string = "sapi-q";
+
 export class QuestBook {
   /**
    * The unique id of the QuestBook.
@@ -26,10 +28,24 @@ export class QuestBook {
    * The title the QuestBook.
    */
   title: string | RawMessage;
+  protected _body:
+    | string
+    | RawMessage
+    | ((book: QuestBook) => string | RawMessage);
   /**
    * The body the QuestBook.
    */
-  body: string | RawMessage;
+  get body(): string | RawMessage {
+    return typeof this._body === "function" ? this._body(this) : this._body;
+  }
+  /**
+   * The body the QuestBook.
+   */
+  set body(
+    body: string | RawMessage | ((book: QuestBook) => string | RawMessage),
+  ) {
+    this._body = body;
+  }
   private readonly quests: Quest[];
   private get form() {
     return new ActionFormData().title(this.title).body(this.body);
@@ -37,12 +53,12 @@ export class QuestBook {
   constructor(
     id: string,
     title: string | RawMessage,
-    body: string | RawMessage,
+    body: string | RawMessage | ((book: QuestBook) => string | RawMessage),
     quests: Quest[],
   ) {
     this.id = id;
     this.title = title;
-    this.body = body;
+    this._body = body;
     this.quests = quests;
   }
   /**
@@ -107,10 +123,24 @@ export class Quest {
    * The title the Quest.
    */
   title: string | RawMessage;
+  protected _body:
+    | string
+    | RawMessage
+    | ((quest: Quest) => string | RawMessage);
   /**
    * The body the Quest.
    */
-  body: string | RawMessage;
+  get body(): string | RawMessage {
+    return typeof this._body === "function" ? this._body(this) : this._body;
+  }
+  /**
+   * The body the Quest.
+   */
+  set body(
+    body: string | RawMessage | ((quest: Quest) => string | RawMessage),
+  ) {
+    this._body = body;
+  }
   /**
    * The type the Quest.
    */
@@ -137,7 +167,7 @@ export class Quest {
   constructor(
     id: string,
     title: string | RawMessage,
-    body: string | RawMessage,
+    body: string | RawMessage | ((quest: Quest) => string | RawMessage),
     type: QuestTypes,
     completeCondition: QuestCondition,
     unlockCondition: QuestCondition,
@@ -146,7 +176,7 @@ export class Quest {
   ) {
     this.id = id;
     this.title = title;
-    this.body = body;
+    this._body = body;
     this.type = type;
     this.icon = icon;
     this.completeCondition = completeCondition;
@@ -175,7 +205,7 @@ export class Quest {
     return checkCondition(this.unlockCondition, player);
   }
   complete(player: Player): void {
-    player.addTag(`sapi-u:${this.id}`);
+    player.addTag(`${tagNameSpace}:${this.id}`);
     player.addLevels(this.award?.playerXpLevel ?? 0);
     player.addExperience(this.award?.playerXpPoint ?? 0);
     let itemAward: ItemStack | ItemStack[] = this.award?.item ?? [];
@@ -184,6 +214,11 @@ export class Quest {
       player.getComponent("minecraft:inventory")?.container?.addItem(item);
     });
     this.award?.custom?.(player);
+    player.playSound("random.levelup");
+    player.sendMessage({
+      translate: "sapi-utils.quest_finished",
+      with: typeof this.title === "string" ? [this.title] : this.title,
+    });
   }
   /**
    * Display the Quest to a player.
@@ -230,7 +265,7 @@ export class Quest {
    * @param player
    */
   isCompleted(player: Player): boolean {
-    return player.hasTag(`sapi-u:${this.id}`);
+    return player.hasTag(`${tagNameSpace}:${this.id}`);
   }
   /**
    * Check if the type is INFO
@@ -391,4 +426,12 @@ function checkCondition(condition: QuestCondition, player: Player) {
     });
   }
   return <number>message.rawtext?.length > 0 ? message : true;
+}
+
+/**
+ * Set the namespace of the Quest Complete Tag
+ * @param str the namespace
+ */
+export function setTagNameSpace(str: string) {
+  tagNameSpace = str;
 }
