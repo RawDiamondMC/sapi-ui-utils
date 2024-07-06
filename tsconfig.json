@@ -2,10 +2,10 @@
   "include": ["**/*"],
   "exclude": ["node_modules","build.ts"],
   "compilerOptions": {
-    "target": "es2022",
+    "target": "es2023",
     "module": "es2022",
     "moduleResolution": "bundler",
-    "lib": ["es2022","dom"],
+    "lib": ["es2023","dom"],
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,

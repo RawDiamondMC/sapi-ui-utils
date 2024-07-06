@@ -1,2 +1,2 @@
-export * as quest from "./quest/index.js";
-export * from "./quest/index.js";
+export * as quest from "./quest.js";
+export * from "./quest.js";
