@@ -26,5 +26,5 @@ sapi-utils.quest.reward.level=%%1 level(s)
 sapi-utils.quest.reward.experience=%%1 experience point(s)
 sapi-utils.quest.reward.none=None
 sapi-utils.quest.check=Submit
-sapi-utils.quest.finished=Finished
+sapi-utils.quest.finished=[Finished]
 ```
