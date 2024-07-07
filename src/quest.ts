@@ -131,13 +131,9 @@ export abstract class AbstractQuest {
   }
 
   /**
-   * The condition to complete the quest.
+   * The conditions.
    */
-  completeCondition: QuestCondition;
-  /**
-   * The condition to display the quest.
-   */
-  displayCondition: QuestCondition;
+  conditions: Conditions;
   /**
    * It will be called when the Quest is completed by the player.
    */
@@ -154,16 +150,14 @@ export abstract class AbstractQuest {
     id: string,
     title: RawMessage | ((quest: AbstractQuest) => RawMessage),
     body: RawMessage | ((quest: AbstractQuest) => RawMessage),
-    completeCondition: QuestCondition,
-    displayCondition: QuestCondition,
+    conditions: Conditions,
     reward: QuestReward,
     icon?: string,
   ) {
     this.id = id;
     this.title = title;
     this.body = body;
-    this.completeCondition = completeCondition;
-    this.displayCondition = displayCondition;
+    this.conditions = conditions;
     this.reward = reward;
     this.icon = icon;
   }
@@ -175,38 +169,136 @@ export abstract class AbstractQuest {
     return this;
   }
 
-  applyCondition(player: Player): void {
-    player.addExperience(-(this.completeCondition.playerXpPoint ?? 0));
-    player.addLevels(-(this.completeCondition.playerXpLevel ?? 0));
-    this.completeCondition.item?.forEach((itemData: ItemData) => {
+  applyCondition(player: Player, condition: QuestCondition): void {
+    player.addExperience(-(condition.playerXpPoint ?? 0));
+    player.addLevels(-(condition.playerXpLevel ?? 0));
+    condition.item?.forEach((itemData: ItemData) => {
       sapi.removeItemInContainer(
         <Container>player.getComponent("minecraft:inventory")?.container,
         itemData.item.type.id,
         itemData.item.amount,
       );
     });
-    this.completeCondition.custom?.(player, true);
+    condition.custom?.(this, player, true);
   }
 
   /**
-   * Return if this quest can be completed.
-   * Return undefined when it can be completed.
+   * Check the condition.
    * @param player
+   * @param condition
    */
-  cantComplete(player: Player): undefined | RawMessage {
-    return checkCondition(this.completeCondition, player);
+  checkCondition(player: Player, condition: QuestCondition): undefined | RawMessage {
+    if (condition.always === true) return undefined;
+    if (condition.always === false) return { text: "§k$undefined" };
+    const message: RawMessage = { rawtext: [] };
+    let itemCondition: ItemData[] = condition.item ?? [];
+    for (const itemData of itemCondition) {
+      const container: Container = <Container>player.getComponent("minecraft:inventory")?.container;
+      if (sapi.item.getItemAmountInContainer(container, itemData.item.typeId) < itemData.item.amount) {
+        message.rawtext?.push({
+          translate: "sapi-utils.quest.condition.not_satisfied.item",
+          // You need %%1 more %%2!
+          with: {
+            rawtext: [
+              {
+                text: (
+                  sapi.item.getItemAmountInContainer(container, itemData.item.typeId) - itemData.item.amount
+                ).toString(),
+              },
+              itemData.name,
+            ],
+          },
+        });
+        message.rawtext?.push({ text: "\n" });
+      }
+    }
+    message.rawtext?.push({ text: "\n" });
+    if (condition.quests) {
+      condition.quests.forEach((quest: AbstractQuest) => {
+        if (!quest.isCompleted(player)) {
+          message.rawtext?.push({
+            rawtext: [
+              {
+                translate: "sapi-utils.quest.condition.not_satisfied.quest",
+                with: { rawtext: [quest.title] },
+              }, // %%1 is not completed!
+              {
+                text: "\n",
+              },
+            ],
+          });
+        }
+      });
+    }
+    if (condition.playerXpLevel && player.level < condition.playerXpLevel) {
+      message.rawtext?.push({
+        rawtext: [
+          {
+            translate: "sapi-utils.quest.condition.not_satisfied.level",
+            with: [(player.level - condition.playerXpLevel).toString()],
+          }, // You need %%1 more level(s)!
+          {
+            text: "\n",
+          },
+        ],
+      });
+    }
+    if (condition.playerXpPoint && sapi.player.getAllExp(player) < condition.playerXpPoint) {
+      message.rawtext?.push({
+        rawtext: [
+          {
+            translate: "sapi-utils.quest.condition.not_satisfied.experience",
+            with: [(sapi.player.getAllExp(player) - condition.playerXpPoint).toString()],
+          }, // You need %%1 more experience!
+          {
+            text: "\n",
+          },
+        ],
+      });
+    }
+    const custom: undefined | RawMessage = condition.custom?.(this, player, false);
+    if (custom !== undefined) {
+      message.rawtext?.push({
+        rawtext: [
+          custom,
+          {
+            text: "\n",
+          },
+        ],
+      });
+    }
+    return <number>message.rawtext?.length > 0 ? message : undefined;
+  }
+
+  getCompleteFailedMessage(player: Player): undefined | RawMessage {
+    return this.conditions.complete === undefined ? undefined : this.checkCondition(player, this.conditions.complete);
+  }
+
+  getUnlockFailedMessage(player: Player): undefined | RawMessage {
+    return this.conditions.unlock === undefined ? undefined : this.checkCondition(player, this.conditions.unlock);
+  }
+
+  canDisplay(player: Player): boolean {
+    return this.conditions.display === undefined ? true : !this.checkCondition(player, this.conditions.display);
   }
 
   /**
-   * Return if this quest can be displayed in book.
+   * Check if a player has completed this quest.
    * @param player
    */
-  cantDisplay(player: Player): undefined | RawMessage {
-    return checkCondition(this.displayCondition, player);
+  isCompleted(player: Player): boolean {
+    return player.hasTag(`${sapi.getModId()}:${this.id}`);
+  }
+
+  /**
+   * Check if a player has unlocked this quest.
+   * @param player
+   */
+  isUnlocked(player: Player): boolean {
+    return player.hasTag(`${sapi.getModId()}:unlock:${this.id}`);
   }
 
   complete(player: Player): void {
-    player.addTag(`${sapi.getModId()}:${this.id}`);
     player.sendMessage({
       translate: "sapi-utils.quest_finished",
       with: { rawtext: [this.title] },
@@ -222,6 +314,10 @@ export abstract class AbstractQuest {
     if (this.reward.message) player.sendMessage(this.reward.message);
   }
 
+  unlock(player: Player): void {
+    player.addTag(`${sapi.getModId()}:unlock:${this.id}`);
+  }
+
   /**
    * Display the Quest to a player.
    * @param player
@@ -229,14 +325,6 @@ export abstract class AbstractQuest {
    * @param category the current category.
    */
   abstract display(player: Player, book: Book, category: string): void;
-
-  /**
-   * Check if a player has completed this quest.
-   * @param player
-   */
-  isCompleted(player: Player): boolean {
-    return player.hasTag(`${sapi.getModId()}:${this.id}`);
-  }
 
   /**
    * Get the type of this.
@@ -282,7 +370,7 @@ export class Quest extends AbstractQuest {
         return;
       }
       if (response.selection === 1) {
-        const result: RawMessage | undefined = this.cantComplete(player);
+        const result: RawMessage | undefined = this.getCompleteFailedMessage(player);
         if (result) {
           new ActionFormData()
             .title(this.title)
@@ -294,7 +382,7 @@ export class Quest extends AbstractQuest {
             });
           return;
         }
-        this.applyCondition(player);
+        if (this.conditions.complete) this.applyCondition(player, this.conditions.complete);
         this.complete(player);
         return;
       }
@@ -313,7 +401,7 @@ export class Quest extends AbstractQuest {
 /**
  * Create an Article (or message).
  *
- * The difference between `Quest` and `Article` is that `Article` will try to complete when user saw the article,
+ * The difference between `Quest` and `Article` is that `Article` will complete without checking conditions when user saw the article,
  * Quest will try when user click `Submit`.
  */
 export class Article extends AbstractQuest {
@@ -331,29 +419,10 @@ export class Article extends AbstractQuest {
       return;
     }
     this.form.show(player).then((response: MessageFormResponse) => {
-      const result: RawMessage | undefined = this.cantComplete(player);
-      if (!result) {
-        this.complete(player);
+      this.complete(player);
+      if (response.selection) {
+        book.displayCategory(player, category);
       }
-      if (!(!response.canceled && response.selection)) {
-        return;
-      }
-      if (response.selection === 1) {
-        const result: RawMessage | undefined = this.cantComplete(player);
-        if (result) {
-          this.form
-            .body(result)
-            .show(player)
-            .then(() => {
-              this.display(player, book, category);
-            });
-          return;
-        }
-        this.applyCondition(player);
-        this.complete(player);
-        return;
-      }
-      book.displayCategory(player, category);
     });
   }
 
@@ -460,7 +529,7 @@ export class Book {
           this.displayCategory(player, `${category}.${key}`);
         });
       } else if (value instanceof AbstractQuest) {
-        if (!value.cantDisplay(player)) {
+        if (value.canDisplay(player)) {
           form.button(
             {
               rawtext: [
@@ -470,7 +539,7 @@ export class Book {
                 value.title,
               ],
             },
-            value.icon,
+            value.isUnlocked(player) ? value.icon : "texture/ui/lock",
           );
           actions.push((player: Player, category: string) => {
             value.display(player, this, category);
@@ -503,7 +572,20 @@ export enum QuestTypes {
   UNKNOWN = "unknown",
 }
 
+export interface Conditions {
+  display?: QuestCondition;
+  /**
+   * Useless in {@link Article}
+   */
+  complete?: QuestCondition;
+  unlock?: QuestCondition;
+}
+
 export interface QuestCondition {
+  /**
+   * If set, other condition will not be checked.
+   */
+  always?: boolean;
   /**
    * Match only typeId and min amount.
    */
@@ -527,9 +609,9 @@ export interface QuestCondition {
    *
    * Return undefined if the quest can be completed.
    *
-   * You shouldn't remove anything or add anything if isCompleting is false.
+   * You shouldn't remove anything or add anything if canApply is false.
    */
-  custom?: (player: Player, isCompleting: boolean) => RawMessage | undefined;
+  custom?: (quest: AbstractQuest, player: Player, canApply: boolean) => RawMessage | undefined;
 }
 
 export interface QuestReward {
@@ -609,87 +691,6 @@ export class CategoryInfo {
       undefined,
     );
   }
-}
-
-function checkCondition(condition: QuestCondition, player: Player) {
-  const message: RawMessage = { rawtext: [] };
-  let itemCondition: ItemData[] = condition.item ?? [];
-  for (const itemData of itemCondition) {
-    const container: Container = <Container>player.getComponent("minecraft:inventory")?.container;
-    if (sapi.item.getItemAmountInContainer(container, itemData.item.typeId) < itemData.item.amount) {
-      message.rawtext?.push({
-        translate: "sapi-utils.quest.condition.not_satisfied.item",
-        // You need %%1 more %%2!
-        with: {
-          rawtext: [
-            {
-              text: (
-                sapi.item.getItemAmountInContainer(container, itemData.item.typeId) - itemData.item.amount
-              ).toString(),
-            },
-            itemData.name,
-          ],
-        },
-      });
-      message.rawtext?.push({ text: "\n" });
-    }
-  }
-  message.rawtext?.push({ text: "\n" });
-  if (condition.quests) {
-    condition.quests.forEach((quest: AbstractQuest) => {
-      if (!quest.isCompleted(player)) {
-        message.rawtext?.push({
-          rawtext: [
-            {
-              translate: "sapi-utils.quest.condition.not_satisfied.quest",
-              with: { rawtext: [quest.title] },
-            }, // %%1 is not completed!
-            {
-              text: "\n",
-            },
-          ],
-        });
-      }
-    });
-  }
-  if (condition.playerXpLevel && player.level < condition.playerXpLevel) {
-    message.rawtext?.push({
-      rawtext: [
-        {
-          translate: "sapi-utils.quest.condition.not_satisfied.level",
-          with: [(player.level - condition.playerXpLevel).toString()],
-        }, // You need %%1 more level(s)!
-        {
-          text: "\n",
-        },
-      ],
-    });
-  }
-  if (condition.playerXpPoint && sapi.player.getAllExp(player) < condition.playerXpPoint) {
-    message.rawtext?.push({
-      rawtext: [
-        {
-          translate: "sapi-utils.quest.condition.not_satisfied.experience",
-          with: [(sapi.player.getAllExp(player) - condition.playerXpPoint).toString()],
-        }, // You need %%1 more experience!
-        {
-          text: "\n",
-        },
-      ],
-    });
-  }
-  const custom: undefined | RawMessage = condition.custom?.(player, false);
-  if (custom !== undefined) {
-    message.rawtext?.push({
-      rawtext: [
-        custom,
-        {
-          text: "\n",
-        },
-      ],
-    });
-  }
-  return <number>message.rawtext?.length > 0 ? message : undefined;
 }
 
 /**
