@@ -449,14 +449,17 @@ export class Book {
         });
       } else if (value instanceof AbstractQuest) {
         if (value.canDisplay(player)) {
-          form.button({
-            rawtext: [
-              { text: "§a" },
-              value.isCompleted(player) ? { translate: "sapi-utils.quest.finished" } : {},
-              { text: "§r" },
-              value.title,
-            ],
-          });
+          form.button(
+            {
+              rawtext: [
+                { text: "§a" },
+                value.isCompleted(player) ? { translate: "sapi-utils.quest.finished" } : {},
+                { text: "§r" },
+                value.title,
+              ],
+            },
+            value.icon,
+          );
           actions.push((player: Player, category: string) => {
             value.display(player, this, category);
           });
