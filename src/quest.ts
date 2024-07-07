@@ -168,10 +168,11 @@ export abstract class AbstractQuest {
     this.icon = icon;
   }
 
-  addToCategory(category: string): void {
+  addToCategory(category: string): AbstractQuest {
     const categoryMap: Map<string, any> = getCategory(category).map;
     if (categoryMap.has(this.id)) throw new Error();
     categoryMap.set(this.id, this);
+    return this;
   }
 
   applyCondition(player: Player): void {
@@ -192,7 +193,7 @@ export abstract class AbstractQuest {
    * Return undefined when it can be completed.
    * @param player
    */
-  canComplete(player: Player): undefined | RawMessage {
+  cantComplete(player: Player): undefined | RawMessage {
     return checkCondition(this.completeCondition, player);
   }
 
@@ -200,7 +201,7 @@ export abstract class AbstractQuest {
    * Return if this quest can be displayed in book.
    * @param player
    */
-  canDisplay(player: Player): undefined | RawMessage {
+  cantDisplay(player: Player): undefined | RawMessage {
     return checkCondition(this.displayCondition, player);
   }
 
@@ -281,7 +282,7 @@ export class Quest extends AbstractQuest {
         return;
       }
       if (response.selection === 1) {
-        const result: RawMessage | undefined = this.canComplete(player);
+        const result: RawMessage | undefined = this.cantComplete(player);
         if (result) {
           new ActionFormData()
             .title(this.title)
@@ -330,7 +331,7 @@ export class Article extends AbstractQuest {
       return;
     }
     this.form.show(player).then((response: MessageFormResponse) => {
-      const result: RawMessage | undefined = this.canComplete(player);
+      const result: RawMessage | undefined = this.cantComplete(player);
       if (!result) {
         this.complete(player);
       }
@@ -338,7 +339,7 @@ export class Article extends AbstractQuest {
         return;
       }
       if (response.selection === 1) {
-        const result: RawMessage | undefined = this.canComplete(player);
+        const result: RawMessage | undefined = this.cantComplete(player);
         if (result) {
           this.form
             .body(result)
@@ -459,7 +460,7 @@ export class Book {
           this.displayCategory(player, `${category}.${key}`);
         });
       } else if (value instanceof AbstractQuest) {
-        if (value.canDisplay(player)) {
+        if (!value.cantDisplay(player)) {
           form.button(
             {
               rawtext: [
