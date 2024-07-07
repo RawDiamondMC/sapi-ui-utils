@@ -75,6 +75,16 @@ export function setCategoryBody(body: RawMessage, category: string): void {
   info.body = body;
 }
 
+/**
+ * Set the icon of a category.
+ * @param icon
+ * @param category
+ */
+export function setCategoryIcon(icon: string | undefined, category: string): void {
+  const info: CategoryInfo = getCategory(category).info;
+  info.icon = icon;
+}
+
 export abstract class AbstractQuest {
   /**
    * The id of the Quest.
@@ -443,7 +453,8 @@ export class Book {
     }
     map.forEach((value: any, key: string) => {
       if (value instanceof Map) {
-        form.button(getCategoryInfo(map, key).title);
+        const info: CategoryInfo = getCategoryInfo(map, key);
+        form.button(info.title, info.icon);
         actions.push((player: Player, category: string) => {
           this.displayCategory(player, `${category}.${key}`);
         });
@@ -569,10 +580,18 @@ export class CategoryInfo {
    * The body of the category.
    */
   body: RawMessage;
+  /**
+   * The icon of the category.
+   *
+   * It should be the path from the root of the resource pack.
+   * @example texture/gui/example_pic
+   */
+  icon: string | undefined;
 
-  private constructor(title: RawMessage, body: RawMessage) {
+  private constructor(title: RawMessage, body: RawMessage, icon: string | undefined) {
     this.title = title;
     this.body = body;
+    this.icon = icon;
   }
 
   /**
@@ -586,6 +605,7 @@ export class CategoryInfo {
         translate: `category.${sapi.getModId()}.${categoryName}.body`,
         with: ["\n"],
       },
+      undefined,
     );
   }
 }
