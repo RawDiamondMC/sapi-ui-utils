@@ -625,11 +625,12 @@ export class Book {
       }
     });
   }
-  registerItem(typeId: string) {
+  registerItem(typeId: string): Book {
     typeId = sapi.ensureNamespace(typeId);
     world.afterEvents.itemUse.subscribe((event) => {
       if (event.itemStack.type.id === typeId) this.display(event.source);
     });
+    return this;
   }
 }
 
