@@ -625,10 +625,29 @@ export class Book {
       }
     });
   }
+
   registerItem(typeId: string): Book {
     typeId = sapi.ensureNamespace(typeId);
     world.afterEvents.itemUse.subscribe((event) => {
       if (event.itemStack.type.id === typeId) this.display(event.source);
+    });
+    return this;
+  }
+
+  setTitle(title: RawMessage) {
+    this.title = title;
+    return this;
+  }
+
+  setBody(body: RawMessage) {
+    this.body = body;
+    return this;
+  }
+
+  addQuests(quests: AbstractQuest[]) {
+    quests.forEach((quest: AbstractQuest) => {
+      if (this.map.has(quest.id)) throw new Error(`${quest.id} exists!`);
+      this.map.set(quest.id, quest);
     });
     return this;
   }
