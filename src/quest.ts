@@ -484,7 +484,7 @@ export class Book {
   /**
    * Get the map of the root category
    */
-  get map(): Map<string, any> {
+  protected get map(): Map<string, any> {
     return getCategory(this.root).map;
   }
 
