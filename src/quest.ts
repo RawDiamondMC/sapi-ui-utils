@@ -1,4 +1,4 @@
-import { Container, ItemStack, Player, RawMessage } from "@minecraft/server";
+import { Container, ItemStack, Player, RawMessage, world } from "@minecraft/server";
 // noinspection ES6UnusedImports
 import {
   ActionFormData,
@@ -324,7 +324,7 @@ export abstract class AbstractQuest {
    * @param book
    * @param category the current category.
    */
-  abstract display(player: Player, book: Book, category: string): void;
+  abstract display(player: Player, book: Book | null, category: string): void;
 
   /**
    * Get the type of this.
@@ -333,6 +333,13 @@ export abstract class AbstractQuest {
     if (this instanceof Quest) return QuestTypes.QUEST;
     if (this instanceof Article) return QuestTypes.ARTICLE;
     return QuestTypes.UNKNOWN;
+  }
+
+  registerItem(typeId: string) {
+    typeId = sapi.ensureNamespace(typeId);
+    world.afterEvents.itemUse.subscribe((event) => {
+      if (event.itemStack.type.id === typeId) this.display(event.source, null, "");
+    });
   }
 
   toString(): string {
@@ -352,14 +359,14 @@ export class Quest extends AbstractQuest {
       .button2({ translate: "sapi-utils.quest.check" });
   }
 
-  display(player: Player, book: Book, category: string): void {
+  display(player: Player, book: Book | null, category: string): void {
     if (this.isCompleted(player)) {
       new ActionFormData()
         .title(this.title)
         .body(this.body)
         .show(player)
         .then((response: ActionFormResponse) => {
-          if (response.selection) {
+          if (response.selection && book) {
             book.displayCategory(player, category);
           }
         });
@@ -386,7 +393,7 @@ export class Quest extends AbstractQuest {
         this.complete(player);
         return;
       }
-      book.displayCategory(player, category);
+      if (book) book.displayCategory(player, category);
     });
   }
 
@@ -409,19 +416,11 @@ export class Article extends AbstractQuest {
     return new ActionFormData().title(this.title).body(this.body).button({ translate: "gui.ok" });
   }
 
-  display(player: Player, book: Book, category: string): void {
-    if (this.isCompleted(player)) {
-      this.form.show(player).then((response: ActionFormResponse) => {
-        if (response.selection) {
-          book.displayCategory(player, category);
-        }
-      });
-      return;
-    }
+  display(player: Player, book: Book | null, category: string): void {
     this.form.show(player).then((response: MessageFormResponse) => {
-      this.complete(player);
+      if (!this.isCompleted(player)) this.complete(player);
       if (response.selection) {
-        book.displayCategory(player, category);
+        if (book) book.displayCategory(player, category);
       }
     });
   }
@@ -614,6 +613,12 @@ export class Book {
       if (!response.canceled && response.selection) {
         actions[response.selection](player, category);
       }
+    });
+  }
+  registerItem(typeId: string) {
+    typeId = sapi.ensureNamespace(typeId);
+    world.afterEvents.itemUse.subscribe((event) => {
+      if (event.itemStack.type.id === typeId) this.display(event.source);
     });
   }
 }
