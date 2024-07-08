@@ -653,11 +653,21 @@ export class Book {
   }
 
   addQuestToSubCategory(quests: AbstractQuest[], subCategory: string) {
-    const map = getByCategory(this.root + subCategory);
+    const map = getByCategory(this.root + "." + subCategory);
     quests.forEach((quest: AbstractQuest) => {
       if (map.has(quest.id)) throw new Error(`${quest.id} exists!`);
       map.set(quest.id, quest);
     });
+    return this;
+  }
+
+  setTitleForSubCategory(title: RawMessage, subCategory: string) {
+    new Book(this.root + "." + subCategory).setTitle(title);
+    return this;
+  }
+
+  setBodyForSubCategory(body: RawMessage, subCategory: string) {
+    new Book(this.root + "." + subCategory).setBody(body);
     return this;
   }
 }
