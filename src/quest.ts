@@ -542,7 +542,62 @@ export class Book {
             value.isUnlocked(player) ? value.icon : "texture/ui/lock",
           );
           actions.push((player: Player, category: string) => {
-            value.display(player, this, category);
+            if (value.isUnlocked(player)) {
+              value.display(player, this, category);
+              return;
+            }
+            const conditionText: RawMessage = {};
+            const condition: QuestCondition = <QuestCondition>value.conditions.unlock;
+            condition.item?.forEach((itemData: ItemData) => {
+              conditionText.rawtext?.push({
+                translate: "sapi-utils.quest.condition.item",
+                with: { rawtext: [{ text: itemData.item.amount.toString() }, itemData.name] },
+              });
+              conditionText.rawtext?.push({ text: "; " });
+            });
+            condition.quests?.forEach((quest: AbstractQuest) => {
+              conditionText.rawtext?.push({
+                translate: "sapi-utils.quest.condition.quest",
+                with: { rawtext: [quest.title] },
+              });
+              conditionText.rawtext?.push({ text: "; " });
+            });
+            if (condition.playerXpLevel) {
+              conditionText.rawtext?.push({
+                translate: "sapi-utils.quest.condition.level",
+                with: [condition.playerXpLevel.toString()],
+              });
+              conditionText.rawtext?.push({ text: "; " });
+            }
+            if (condition.playerXpPoint) {
+              conditionText.rawtext?.push({
+                translate: "sapi-utils.quest.condition.experience",
+                with: [condition.playerXpPoint.toString()],
+              });
+              conditionText.rawtext?.push({ text: "; " });
+            }
+            const custom = condition.custom?.(value, player, false);
+            if (custom) conditionText.rawtext?.push(custom);
+            if (<number>conditionText.rawtext?.length === 0) {
+              conditionText.rawtext?.push({ translate: "sapi-utils.quest.condition.none" });
+            }
+            new ActionFormData()
+              .title(value.title)
+              .body({ rawtext: [{ translate: "sapi-utils.quest.condition.unlock" }, conditionText] })
+              .button({ translate: "gui.yes" })
+              .button({ translate: "gui.no" })
+              .show(player)
+              .then((response: ActionFormResponse) => {
+                switch (response.selection) {
+                  case 0:
+                    value.applyCondition(player, <QuestCondition>value.conditions.unlock);
+                    value.unlock(player);
+                    break;
+                  case 1:
+                    this.displayCategory(player, category);
+                    break;
+                }
+              });
           });
         }
       }
@@ -696,12 +751,12 @@ export class CategoryInfo {
 /**
  * Generate Quest description by condition and reward.
  *
- * `custom` and `message` is not supported.
+ * `message` is not supported.
  */
-export function generateDescriptionByCondition(
-  body: RawMessage,
+export function generateConditionDescription(
+  quest: AbstractQuest,
   condition: QuestCondition,
-  reward: QuestReward,
+  player: Player,
 ): RawMessage {
   const conditionText: RawMessage = {};
   condition.item?.forEach((itemData: ItemData) => {
@@ -732,11 +787,14 @@ export function generateDescriptionByCondition(
     });
     conditionText.rawtext?.push({ text: "; " });
   }
+  const custom = condition.custom?.(quest, player, false);
+  if (custom) conditionText.rawtext?.push(custom);
   if (<number>conditionText.rawtext?.length === 0) {
     conditionText.rawtext?.push({ translate: "sapi-utils.quest.condition.none" });
   }
 
   const rewardText: RawMessage = {};
+  const reward = quest.reward;
   reward.item?.forEach((itemData: ItemData) => {
     rewardText.rawtext?.push({
       translate: "sapi-utils.quest.reward.item",
@@ -763,7 +821,7 @@ export function generateDescriptionByCondition(
   }
   return {
     rawtext: [
-      body,
+      quest.body,
       { text: "\n\n" },
       { translate: "sapi-utils.quest.condition" },
       conditionText,
