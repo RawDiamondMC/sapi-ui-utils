@@ -145,6 +145,7 @@ export abstract class AbstractQuest {
    * @example texture/gui/example_pic
    */
   icon?: string;
+  isOnlyCheck: boolean = false;
 
   constructor(
     id: string,
@@ -335,11 +336,20 @@ export abstract class AbstractQuest {
     return QuestTypes.UNKNOWN;
   }
 
+  /**
+   * Items won't be removed on complete or unlock
+   */
+  onlyCheck() {
+    this.isOnlyCheck = true;
+    return this;
+  }
+
   registerItem(typeId: string) {
     typeId = sapi.ensureNamespace(typeId);
     world.afterEvents.itemUse.subscribe((event) => {
       if (event.itemStack.type.id === typeId) this.display(event.source, null, "");
     });
+    return this;
   }
 
   toString(): string {
