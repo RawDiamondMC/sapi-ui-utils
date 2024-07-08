@@ -478,6 +478,20 @@ export class Book {
   }
 
   /**
+   * Get the icon of the root category
+   */
+  get icon(): string | undefined {
+    return this.info.icon;
+  }
+
+  /**
+   * Set the icon of the root category
+   */
+  set icon(icon: string | undefined) {
+    setCategoryIcon(icon, this.root);
+  }
+
+  /**
    * Get the info of the root category
    */
   get info(): CategoryInfo {
@@ -644,6 +658,11 @@ export class Book {
     return this;
   }
 
+  setIcon(icon: string) {
+    this.icon = icon;
+    return this;
+  }
+
   addQuests(quests: AbstractQuest[]) {
     quests.forEach((quest: AbstractQuest) => {
       if (this.map.has(quest.id)) throw new Error(`${quest.id} exists!`);
@@ -662,12 +681,17 @@ export class Book {
   }
 
   setTitleForSubCategory(title: RawMessage, subCategory: string) {
-    new Book(this.root + "." + subCategory).setTitle(title);
+    setCategoryTitle(title, this.root + "." + subCategory);
     return this;
   }
 
   setBodyForSubCategory(body: RawMessage, subCategory: string) {
-    new Book(this.root + "." + subCategory).setBody(body);
+    setCategoryBody(body, this.root + "." + subCategory);
+    return this;
+  }
+
+  setIconForSubCategory(icon: string | undefined, subCategory: string) {
+    setCategoryIcon(icon, this.root + "." + subCategory);
     return this;
   }
 }
