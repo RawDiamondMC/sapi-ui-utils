@@ -651,6 +651,15 @@ export class Book {
     });
     return this;
   }
+
+  addQuestToSubCategory(quests: AbstractQuest[], subCategory: string) {
+    const map = getByCategory(this.root + subCategory);
+    quests.forEach((quest: AbstractQuest) => {
+      if (map.has(quest.id)) throw new Error(`${quest.id} exists!`);
+      map.set(quest.id, quest);
+    });
+    return this;
+  }
 }
 
 /**
